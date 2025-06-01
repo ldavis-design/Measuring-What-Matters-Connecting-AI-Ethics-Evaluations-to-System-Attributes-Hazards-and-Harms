@@ -128,7 +128,7 @@ def display_click_data(clickData):
         return html.Div([
             html.B("Instructions for Use:"),
             html.Ul([
-                html.Li("Please select a principle, followed by the component of the ML system that you are interested in exploring, and the primary harm."),
+                html.Li("Please allow a few minutes for the diagram to run. First, select a principle, followed by the component of the ML system that you are interested in exploring, and the primary harm."),
                 html.Li("Hovering will display three pieces of metadata: the tier you are currently at in the visual, the parent (e.g., the tier prior), and the principle you are currently hovering above."),
                 html.Li("Click on a measure to see the corresponding measurement process."),
                 html.Li("To learn more about the measure, its formulaic variables (if quantitative), secondary harm (if present), hazard, attribute, and relative context of use, please click the link on each measurement process to access the authors’ publication.")
