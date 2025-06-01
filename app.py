@@ -5,7 +5,7 @@ from dash import dcc, html, Input, Output
 import plotly.express as px
 from openpyxl import load_workbook
 
-# Load the dataset
+#Load the dataset
 dropped_df = pd.read_excel("RAI_Measures_Dataset.xlsx")
 dropped_df.columns = dropped_df.iloc[0]  # Use second row as column names
 dropped_df = dropped_df.iloc[1:]  # Drop first two rows
@@ -14,22 +14,20 @@ wb = load_workbook("RAI_Measures_Dataset.xlsx", data_only=True)
 ws = wb.active
 
 link_map = {}
-for row in ws.iter_rows(min_row=3):  # adjust if headers differ
+for row in ws.iter_rows(min_row=3):  
     title_cell = row[dropped_df.columns.get_loc("Title")]
     if title_cell.hyperlink:
         link_map[title_cell.value] = title_cell.hyperlink.target
-
-# Map the hyperlinks into a new column
 dropped_df["Access Link"] = dropped_df["Title"].map(link_map)
 
-# Subset and prepare data
+#Prepare data
 subset_df_process = dropped_df[
     ['Principle', 'Component of the ML System', 'Measure', 'Measurement Process', 'Title',
      'Type of Assessment', 'Application Area', 'Year', 'Primary Harm', 'Secondary Harm',
      'Attribute', 'Hazard', 'Access Link']
 ]
 
-# Group and clean data
+#Group and clean data
 grouped_df_process = subset_df_process.groupby(
     ['Principle', 'Component of the ML System', 'Measurement Process', 'Title', 'Primary Harm',
      'Secondary Harm', 'Attribute', 'Hazard', 'Access Link', 'Type of Assessment', 'Application Area', 'Year']
@@ -51,19 +49,18 @@ grouped_df_process['Measure'] = grouped_df_process['Measure'].apply(lambda x: x 
 grouped_df_process = grouped_df_process.explode('Measure')
 grouped_df_process['Measure'] = grouped_df_process['Measure'].str.strip()
 
-# Remove rows with nulls in sunburst path
+#Remove null rows 
 grouped_df_process = grouped_df_process.dropna(subset=[
     'Principle', 'Component of the ML System', 'Primary Harm', 'Measure'
 ])
 
-# Define custom color palette
 custom_palette = [
     "#9c0040", "#ff7e3c","#ff3d54", "#ffc68e", "#e9e807",
     "#87ed2d", "#66c2a5", "#3288bd", "#5e4fa2", "#0a2e58",
     "#adadad"
 ]
 
-# Create sunburst chart
+#Create sunburst chart
 fig = px.sunburst(
     grouped_df_process,
     path=["Principle", "Component of the ML System", "Primary Harm", "Measure"],
@@ -95,7 +92,7 @@ fig.update_layout(
     font=dict(family="Source Sans Pro, Arial, sans-serif")
 )
 
-# Initialize Dash app
+#Dash app
 app = dash.Dash(__name__)
 
 app.layout = html.Div(
@@ -176,7 +173,7 @@ def display_click_data(clickData):
             style={"font-family": "Source Sans Pro, Arial, sans-serif"}
         )
 
-# Run app
+#Run app
 server = app.server
 
 if __name__ == '__main__':
