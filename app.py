@@ -6,17 +6,16 @@ import plotly.express as px
 from openpyxl import load_workbook
 
 # Load the dataset
-file_path = "RAI_Measures_Dataset.xlsx"
-dropped_df = pd.read_excel(file_path)
+dropped_df = pd.read_excel("RAI_Measures_Dataset.xlsx")
 dropped_df.columns = dropped_df.iloc[0]  # Use second row as column names
 dropped_df = dropped_df.iloc[1:]  # Drop first two rows
 
 # Extract hyperlink for each Title using openpyxl
-wb = load_workbook(file_path, data_only=True)
+wb = load_workbook("RAI_Measures_Dataset.xlsx", data_only=True)
 ws = wb.active
 
 link_map = {}
-for row in ws.iter_rows(min_row=3):
+for row in ws.iter_rows(min_row=3):  
     title_cell = row[dropped_df.columns.get_loc("Title")]
     if title_cell.hyperlink:
         link_map[title_cell.value] = title_cell.hyperlink.target
@@ -30,11 +29,27 @@ subset_df_process = dropped_df[
      'Attribute', 'Hazard', 'Access Link']
 ]
 
-# Group and clean data
-grouped_df_process = subset_df_process.groupby(
-    ['Principle', 'Component of the ML System', 'Measurement Process', 'Title', 'Primary Harm',
-     'Secondary Harm', 'Attribute', 'Hazard', 'Access Link', 'Type of Assessment', 'Application Area', 'Year']
-)['Measure'].apply(list).reset_index()
+# Debug: Check for nulls before grouping
+required_columns = [
+    'Principle', 'Component of the ML System', 'Primary Harm', 'Measure',
+    'Measurement Process', 'Title'
+]
+
+print("DEBUG: Columns available:", dropped_df.columns.tolist())
+print("DEBUG: Null value count before dropna:")
+print(subset_df_process[required_columns].isna().sum())
+
+# Drop rows with missing key data
+subset_df_clean = subset_df_process.dropna(subset=required_columns)
+print("DEBUG: Cleaned subset sample:")
+print(subset_df_clean.head(3).to_string())
+
+# Group
+grouped_df_process = subset_df_clean.groupby(
+    ['Principle', 'Component of the ML System', 'Primary Harm', 'Measure']
+).first().reset_index()
+
+print("DEBUG: Grouped DF shape:", grouped_df_process.shape)
 
 # Handle comma-separated entries
 grouped_df_process['Principle'] = grouped_df_process['Principle'].astype(str).str.split(', ')
@@ -48,25 +63,6 @@ grouped_df_process = grouped_df_process.explode('Primary Harm')
 grouped_df_process['Principle'] = grouped_df_process['Principle'].str.strip()
 grouped_df_process['Component of the ML System'] = grouped_df_process['Component of the ML System'].str.strip()
 grouped_df_process['Primary Harm'] = grouped_df_process['Primary Harm'].str.strip()
-
-grouped_df_process['Measure'] = grouped_df_process['Measure'].apply(lambda x: x if isinstance(x, list) else [x])
-grouped_df_process = grouped_df_process.explode('Measure')
-grouped_df_process['Measure'] = grouped_df_process['Measure'].str.strip()
-
-# Remove nulls
-grouped_df_process = grouped_df_process.dropna(subset=[
-    'Principle', 'Component of the ML System', 'Primary Harm', 'Measure'
-])
-
-# === DEBUGGING BLOCK START ===
-print("DEBUG: Columns available:", dropped_df.columns.tolist())
-print("DEBUG: Grouped DF shape:", grouped_df_process.shape)
-print("DEBUG: Sample of grouped data:")
-print(grouped_df_process[['Principle', 'Component of the ML System', 'Primary Harm', 'Measure']].dropna().head())
-
-if grouped_df_process.empty:
-    raise ValueError("Grouped DataFrame is empty — check preprocessing or Excel file format.")
-# === DEBUGGING BLOCK END ===
 
 # Color palette
 custom_palette = [
@@ -86,7 +82,6 @@ fig = px.sunburst(
     custom_data=["Principle"]
 )
 
-# === DEBUG: Check if chart has data ===
 print("DEBUG: Sunburst chart traces:", len(fig.data))
 if len(fig.data) == 0:
     raise ValueError("Sunburst chart has no data — check if 'path' values are populated.")
@@ -140,6 +135,7 @@ app.layout = html.Div(
     ]
 )
 
+# Callback to handle interaction
 @app.callback(
     Output('click-output', 'children'),
     Input('sunburst-chart', 'clickData')
@@ -191,7 +187,7 @@ def display_click_data(clickData):
 
 # Run the server
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8051))
+    port = int(os.environ.get("PORT", 8051))  # Adjust port as needed
     app.run(host="0.0.0.0", port=port, debug=True)
 
 
